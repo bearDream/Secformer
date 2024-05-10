@@ -1,0 +1,206 @@
+from Compiler import ml
+
+"""
+    Functional. Test Prob Attention
+    Experiments： x
+    var: x
+"""
+# B = 1
+#
+# # var
+# L_Q = 64
+# H = 8
+#
+# E = 64
+# n_top = 8
+# Q = sfix.Tensor([B, H, L_Q, E])
+# K = sfix.Tensor([B, H, L_Q, E])
+#
+# Q.randomize(0, 1)
+# K.randomize(0, 1)
+# V = Q
+# ProbAttn = ml.ProbAttention(False, factor=5, attention_dropout=0.0, output_attention=False)
+#
+# ProbAttn.forward(Q, K, V, None)
+
+"""
+    Functional. Test secure tensor mean in specified dimension
+"""
+# M = sfix.Tensor([1, 8, 64, 8])
+# M = sfix.Tensor([32, 8, 64, 8])
+# M.randomize(0, 100)
+
+# for i in range(1):
+#     for j in range(1):
+#         for k in range(3):
+#             for l in range(5):
+#                 print_str("%s  ", M[i][j][k][l].reveal())
+#             print_ln()
+
+# print_ln("...")
+
+# M_mean = M.secure_mean(2)
+# print_ln("%s", M_mean.shape)
+
+# for i in range(1):
+#     for j in range(1):
+#             for k in range(5):
+#                 print_ln("%s", M_mean[i][j][k].reveal())
+
+"""
+    Functional. Test secure tensor add dimension and expand it.
+    add_dim_expand
+"""
+# M = sfix.Tensor([1, 2, 5])
+# M.randomize(0, 100)
+#
+# for i in range(1):
+#     for j in range(2):
+#             for k in range(5):
+#                 print_str("%s  ", M[i][j][k].reveal())
+#             print_ln()
+#
+# MT = M.add_dim_expand(dim=2, nums=3)
+#
+# for i in range(1):
+#     for j in range(2):
+#         for k in range(3):
+#             for l in range(5):
+#                 print_str("%s  ", MT[i][j][k][l].reveal())
+#             print_ln()
+
+"""
+    Functional. Test secure _get_initial_context.
+"""
+# def sec_get_initial_context(V, L_Q):
+#     B, H, L_V, D = V.shape
+#     V_sum = V.secure_mean(dim=2)
+#     print_ln("V_sum shape: %s  ", V_sum.shape)
+#     contex = V_sum.add_dim_expand(2, 96)
+#     return contex
+#
+# M = sfix.Tensor([1, 8, 96, 64])
+# M.randomize(0, 1)
+# contex = sec_get_initial_context(M, 96)
+# print_ln("contex shape: %s  ", contex.shape)
+
+"""
+    Functional. Test softmax.
+"""
+# context_in = sfix.Tensor([1, 2, 3, 2])
+# context_in.randomize(1, 10)
+# x = ml.custom_softmax(context_in)
+#
+# for i in range(1):
+#     for j in range(2):
+#         for k in range(3):
+#             for l in range(2):
+#                 print_str("%s  ", x[i][j][k][l].reveal())
+#             print_ln()
+
+"""
+    Test
+"""
+# attn = sfix.Tensor([25, 96])
+# attn.randomize(1, 10)
+# # [1, 8, 96, 64]
+# V = sfix.Tensor([96, 64])
+# V.randomize(1, 10)
+#
+# res = sfix.Tensor([25, 64])
+# res.assign_vector(attn.direct_mul(V))
+#
+#
+# print_ln("attn[0][0] = %s  ", attn[0][0].reveal())
+# print_ln("attn[0][1] = %s  ", attn[0][1].reveal())
+# print_ln("V[0][0] = %s  ", V[0][0].reveal())
+# print_ln("V[1][0] = %s  ", V[1][0].reveal())
+# print_ln("res[0][0] = %s  ", res[0][0].reveal())
+# # print_ln("res[0][1] = %s  ", res[0][1].reveal())
+#
+# d = attn[0][0] * V[0][0]
+# print_ln("d = %s  ", d.reveal())
+
+"""
+    Test tensor mul.
+"""
+# [1, 8, 25, 96]
+attn = sfix.Tensor([1, 8, 25, 96])
+attn.randomize(1, 2)
+# [1, 8, 96, 64]
+V = sfix.Tensor([1, 8, 96, 64])
+V.randomize(1, 2)
+
+res = sfix.Tensor([1, 8, 25, 64])
+# [1, 8, 25, 64]
+# for i in range(attn.sizes[0]):
+ 
+    for j in range(attn.sizes[1]):
+        res[i][j].assign_vector(attn[i][j].direct_mul(V[i][j]))
+#
+# print_ln('res\'s shape is: %s', res.shape)
+# print_ln("attn[0][0][0][0] = %s  ", attn[0][0][0][0].reveal())
+# print_ln("V[0][0][0][0] = %s  ", V[0][0][0][0].reveal())
+# print_ln("res[0][0][0][0] = %s  ", res[0][0][0].reveal())
+# print_ln("res[0][0][1][1] = %s  ", res[0][0][1][1].reveal())
+# print_ln("res[0][0][24][0] = %s  ", res[0][0][24][0].reveal())
+# print_ln("res[0][0][0][2] = %s  ", res[0][0][0][2].reveal())
+
+
+"""
+    Functional. Test secure _update_context.
+"""
+def sec_update_context(self, context_in, V, scores, index, L_Q, attn_mask):
+    """
+
+    :param context_in: [32, 8, 96, 64]
+    :param V: [32, 8, 96, 64]
+    :param scores: [32, 8, 25, 96]
+    :param index: [32, 8, 25]
+    :param L_Q: 96
+    :param attn_mask: None
+    :return:
+    """
+    import torch
+    B, H, L_V, D = V.shape
+
+    # if self.mask_flag:
+    #     attn_mask = ProbMask(B, H, L_Q, index, scores)
+    #     scores.masked_fill_(attn_mask.mask, -np.inf)
+
+    attn = ml.custom_softmax(scores)
+
+    # attn [32, 8, 25, 96]  V [32, 8, 96, 64]
+    # result_reshaped: [32, 8, 25, 64]
+    res = sfix.Tensor([attn.sizes[0], attn.sizes[1], attn.sizes[2], V.sizes[3]])
+    # [1, 8, 25, 64]
+    for i in range(attn.sizes[0]):
+        for j in range(attn.sizes[1]):
+            res[i][j].assign_vector(attn[i][j].direct_mul(V[i][j]))
+
+    # Assign the result to the specified indices in context_in
+    context_in[range(B)[:, None, None], range(H)[None, :, None], index, :] = res
+
+    return attn
+
+    # context_in[torch.arange(B)[:, None, None], torch.arange(H)[None, :, None], index, :] = torch.matmul(attn, V).type_as(context_in)
+    #
+    # if self.output_attention:
+    #     attns = (torch.ones([B, H, L_V, L_V])/L_V).type_as(attn).to(attn.device)
+    #     attns[torch.arange(B)[:, None, None], torch.arange(H)[None, :, None], index, :] = attn
+    #     return (context_in, attns)
+    # else:
+    #     return (context_in, None)
+
+context_in = sfix.Tensor([1, 8, 96, 64])
+V = sfix.Tensor([1, 8, 96, 64])
+scores = sfix.Tensor([1, 8, 25, 96])
+index = sfix.Tensor([1, 8, 25])
+L_Q = 96
+
+context_in.randomize(0, 1)
+V.randomize(0, 1)
+scores.randomize(0, 1)
+index.randomize(0, 1)
+
+sec_update_context(None, context_in, V, scores, index, L_Q, None)

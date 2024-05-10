@@ -1,0 +1,492 @@
+import time
+
+from Compiler import ml
+
+"""
+    Functional. Test CONV1D
+    Original M
+    Experiments： iterations：8, 16, 32，64，128
+    var: batch_size = 32, 64
+"""
+# iterations = 8
+# batch_size = 128
+# out_channels = 512
+# kernel_size = 3
+# stride = 1
+# padding = 0
+#
+# M = sfix.Tensor([batch_size, 96, 5, 7])
+# Y = sfix.Tensor([batch_size, 72, 5, 7])
+# M.randomize(-1, 1)
+# Y.randomize(0, 1)
+#
+# # conv2D
+# conv2d = ml.easyConv2d(input_shape=M.shape, batch_size=batch_size, out_channels=out_channels,
+#                        kernel_size=kernel_size, stride=stride, padding=padding)
+# conv2d.X = M
+# conv2d.Y = Y
+# # print_ln('conv1d.X[1][2][1] is: %s', conv1d.X[1][2][1].reveal())
+# conv2d.reset()
+#
+# for i in range(iterations):
+#     conv2d.forward()
+
+# conv1D
+# M = sfix.Tensor([batch_size, 96, 7])
+# Y = sfix.Tensor([batch_size, 72, 7])
+# M.randomize(-1, 1)
+# Y.randomize(0, 1)
+# conv1d = ml.easyConv1d(input_shape=M.shape, batch_size=batch_size, out_channels=out_channels,
+#                          kernel_size=kernel_size, stride=stride, padding=padding)
+# conv1d.X = M
+# conv1d.Y = Y
+# # print_ln('conv1d.X[1][2][1] is: %s', conv1d.X[1][2][1].reveal())
+# conv1d.reset()
+# for i in range(iterations):
+#     conv1d.forward()
+
+"""
+    Functional. Test GeLU
+    Experiments： iterations：32，64，128，256，512，1024
+    ReLU and GeLU
+"""
+# iterations = 256
+# batch_size = 32
+# out_channels = 512
+# kernel_size = 3
+# stride = 1
+# padding = 0
+# X = sfix.Tensor([batch_size, 96, 7])
+# Y = sfix.Tensor([batch_size, 72, 7])
+# X.randomize(-1, 1)
+# Y.randomize(0, 1)
+#
+# # RELU
+# layer = ml.Relu(X.shape)
+# layer.X = X
+# layer.Y = Y
+# for i in range(iterations):
+#     layer.forward(batch=[batch_size], training=True)
+
+# GELU
+# layer = ml.GeLU(X.shape)
+# # layer = ml.Relu(X.shape)
+# layer.X = X
+# layer.Y = Y
+# for i in range(iterations):
+#     layer.forward(batch=[batch_size], training=True)
+
+"""
+    Functional. Test Top-K Sorting Index
+    Experiments： batch_size：1, 8, 16, 32，64
+    topK_sort and odd_even_merge sort
+"""
+# batch_size = 64
+# n_top = 4
+#
+# M = sfix.Tensor([batch_size, 96, 96])
+# M.randomize(1, 200)
+#
+# @for_range_opt([batch_size, 96])
+# def _(b, h):
+#     values = sfix.Tensor([96])
+#     indices = sint.Tensor([96])
+#     for lq in range(96):
+#         values[lq] = M[b][h][lq]
+#         indices[lq] = lq
+#     # values.topK_sort(indices=indices, top=n_top, n_threads=n_top, batcher=n_top)
+#     values.sort(n_threads=n_top, batcher=n_top)
+
+"""
+    Functional. Test Prob Attention
+    Experiments： Q Length：64, 128, 256, 512, 1024
+    var: H = 4, 8, 16, 32
+"""
+B = 1
+
+# var
+L_Q = 512
+H = 32
+
+E = 64
+n_top = 8
+Q = sfix.Tensor([B, H, L_Q, E])
+M_top = sint.Tensor([B, H, n_top])
+K = sfix.Tensor([B, H, L_Q, E])
+
+M_top.randomize_int(0, 95)
+Q.randomize(0, 1)
+K.randomize(0, 1)
+V = Q
+ProbAttn = ml.ProbAttention(False, factor=5, attention_dropout=0.0, output_attention=False)
+
+ProbAttn.forward(Q, K, V, None)
+
+"""
+    Functional. Test SecPositionalEmbedding
+    Experiments： d_model：16, 32, 64, 128, 256
+    var: max_len: 2500, 5000
+"""
+# enc_in = 7
+# max_len = 5000
+# d_model = 256
+# embed = 'fixed'
+# freq = 'w'
+# dropout = 0.1
+#
+# x = sfix.Tensor([1, d_model, enc_in])
+# xm = sfix.Tensor([1, d_model, enc_in])
+# x.randomize(-1, 1)
+# xm.randomize(-1, 1)
+#
+# from Informer.embed import SecDataEmbedding
+# de = SecDataEmbedding(enc_in, d_model, embed, freq, dropout, max_len)
+#
+# de.forwards(x, xm)
+
+"""
+    Functional. Test find_top_k_indices
+"""
+# def find_top_k(M, B, H, L_Q, n_top):
+#     M_top = sfix.Tensor([B, H, n_top])
+#     M_top_index = sint.Tensor([B, H, n_top])
+#
+#     @for_range_opt([B, H])
+#     def _(b, h):
+#         values = sfix.Tensor([L_Q])
+#         indices = sint.Tensor([L_Q])
+#         for lq in range(L_Q):
+#             values[lq] = M[b][h][lq]
+#             indices[lq] = lq
+#
+#         # original radix implement
+#         # values.sort()
+#
+#         # original loopy_odd_even_merge_sort implement
+#         # values.sort(n_threads=n_top, batcher=n_top)
+#
+#         # topK implement
+#         values.topK_sort(indices=indices, top=n_top, n_threads=n_top, batcher=n_top)
+#
+#         for i in range(n_top):
+#             M_top[b][h][i] = values[L_Q - i - 1]
+#
+#         for i in range(n_top):
+#             M_top_index[b][h][i] = indices[L_Q - i - 1]
+#
+#     return M_top, M_top_index
+
+#
+# B = 32
+# H = 16
+# L_K = 7
+# M = sfix.Tensor([B, H, L_K])
+# M.randomize(10, 80)
+# E = 64
+# top = 3
+#
+# print_ln('M_top[0][0][0] =%s', M[0][0][0].reveal())
+# print_ln('M_top[0][0][0] =%s', M[0][0][1].reveal())
+# print_ln('M_top[0][0][0] =%s', M[0][0][2].reveal())
+# print_ln('M_top[0][0][0] =%s', M[0][0][3].reveal())
+# print_ln('M_top[0][0][0] =%s', M[0][0][4].reveal())
+# print_ln('M_top[0][0][0] =%s', M[0][0][5].reveal())
+# print_ln('M_top[0][0][0] =%s', M[0][0][6].reveal())
+# print_ln("After sort")
+#
+# M_top, M_top_index = find_top_k(M, B, H, L_K, top)
+# print_ln('M_top_indices =%s', M_top_index[0][0][0].reveal())
+# print_ln('M_top_indices =%s', M_top_index[0][0][1].reveal())
+# print_ln('M_top_indices =%s', M_top_index[0][0][2].reveal())
+#
+# print_ln("M_top_value")
+# print_ln('M_top_ =%s', M_top[0][0][0].reveal())
+# print_ln('M_top_ =%s', M_top[0][0][1].reveal())
+# print_ln('M_top_ =%s', M_top[0][0][2].reveal())
+
+
+"""
+    Functional. Test Matrix Multiplication
+"""
+# M = sfix.Tensor([7, 96])
+# M.randomize(1, 2)
+# P = sfix.Tensor([96, 7])
+# P.randomize(5, 8)
+# Mp = M.dot(P)
+# print_ln('Mp\'s shape is: %s',Mp.shape)
+
+"""
+    Functional. Test MultiArray View
+    like Pytorch.Tensor.view(1,2)
+"""
+# M = sfix.Tensor([32, 96, 512])
+# M.randomize(1, 2)
+# print_ln('M\'s shape is: %s',M.shape)
+# print_ln('M[1][2][100] is: %s',M[1][2][1].reveal())
+# nM = M.view([32, 96, 8, 64])
+# print(nM.shape)
+# print_ln('nM\'s shape is: %s', nM.shape)
+# print_ln('nM[1][2][5][20] is: %s', nM[1][2][0][1].reveal())
+
+"""
+    Functional. Test Matrix randomize
+"""
+# indices = []
+# for _ in range(20):
+#     tmp = sint.Tensor((25, 25))
+#     tmp.randomize_int(0, 96)
+#     indices.append(tmp)
+# for i in range(10):
+#     for j in range(10):
+#         print_ln('tmp[%s][%s] =%s', i, j, indices[0][i][j].reveal())
+
+
+
+"""
+    Functional. Q_reduce
+"""
+# def calculate_Q_K(Q, K, M_top, B, H, L_K, E, n_top):
+#     # 初始化 Q_reduce 和 Q_K
+#     Q_reduce = MultiArray([B, H, n_top, E], Q.value_type)
+#     Q_K = MultiArray([B, H, n_top, L_K], Q.value_type)
+#
+#     # 构建 Q_reduce
+#     @for_range_opt([B, H])
+#     def _(b, h):
+#         for i in range(n_top):
+#             index = M_top[b][h][i].reveal()
+#             for e in range(E):
+#                 Q_reduce[b][h][i][e] = Q[b][h][index][e]
+#
+#     K_trans = K.transpose_4dimension()
+#     Q_K = MultiArray([B, H, n_top, L_K], Q.value_type)
+#     @for_range_opt([B, H])
+#     def _(b, h):
+#         Q_reduce_reshape = Q_reduce[b][h]
+#         K_reshape = K_trans[b][h]
+#         Q_K[b][h].assign_vector(Q_reduce_reshape.direct_mul(K_reshape))
+#     return Q_K
+#
+#
+# B = 32
+# H = 8
+# L_K = 96
+# E = 64
+# n_top = 25
+# Q = sfix.Tensor([B, H, L_K, E])
+# M_top = sint.Tensor([B, H, n_top])
+# K = sfix.Tensor([B, H, L_K, E])
+#
+# M_top.randomize_int(0, 95)
+# Q.randomize(0, 1)
+# K.randomize(0, 1)
+#
+# # Q_reduce [32, 8, 25, 64]
+# # Q_K [32, 8, 25, 96]
+# Q_K = calculate_Q_K(Q, K, M_top, B, H, L_K, E, n_top)
+# print_ln('Q_K.shape =%s', Q_K.shape)
+
+
+"""
+    Functional. Test transpose_multi_array
+    Original M
+    M = [[[1.23, 2.13, 3.52],
+         [5.93, 10.15, 6.73]],]
+    After Transposed M -->>
+    M = [[[1.23, 5.93],
+         [2.13, 10.15],
+         [3.52, 6.73]],]
+"""
+# X = sfix.Tensor([32, 32, 64, 8])
+# X.randomize(1,2)
+# print_ln('X\'s shape is: %s',X.shape)
+# for i in range(1):
+#     for j in range(3):
+#         for k in range(2):
+#             print_ln('X[%s][%s][%s] =%s', i, j, k, X[i][j][k].reveal())
+# start = time.time()
+# # This is the final answer
+# nX = X.transpose_4dimension()
+# print_ln("total time is %s min", (time.time()-start) / 60)
+# print_ln('After transposed nX\'s shape is: %s', nX.shape)
+# B = nX[0][1][1]
+# for i in range(1):
+#     for j in range(2):
+#         for k in range(3):
+#             print_ln('nX[%s][%s][%s] =%s', i, j, k, nX[i][j][k].reveal())
+
+"""
+    test input and output shape
+"""
+# randArray = sfix.Tensor([32, 7, 96])
+# randArray.randomize(1, 2)
+# # input [32, 96, 7] transposed [32, 7, 96]. Expected value: [32, 96, 512]
+# secTokenConv = ml.easyConv1d(input_shape=randArray.shape, batch_size=randArray.shape[0], out_channels=512, kernel_size=3, stride=1, padding=1)
+# secTokenConv.reset()
+# secTokenConv.X = randArray
+# print_ln('secTokenConv.X =%s',secTokenConv.X[0][0][0].reveal())
+# print_ln('secTokenConv.Y =%s',secTokenConv.Y[0][0][0].reveal())
+# secTokenConv.forward()
+# print_ln('After forward: secTokenConv.X =%s',secTokenConv.X[0][0][0].reveal())
+# print_ln('After forward: secTokenConv.Y =%s',secTokenConv.Y[0][0][0].reveal())
+# print_ln('randArray[0][0][0] =%s',randArray[0][0][0].reveal())
+# print_ln('randArray[0][0][1] =%s',randArray[0][0][1].reveal())
+# output [32, 512, 96]
+
+
+"""
+    test SecPositionalEmbedding
+"""
+# def get_sliced_data(multiArray, size):
+#     # Get the sizes of the dimensions
+#     dim1, dim2, dim3 = multiArray.sizes
+#
+#     # Create a new MultiArray with reduced second dimension size
+#     sliced_array = ml.sfix.Tensor([dim1, size, dim3])
+#
+#     # Copy the sliced data
+#     for i in range(dim1):
+#         for j in range(size):
+#             sliced_array[i][j][:] = multiArray[i][j][:]
+#
+#     return sliced_array
+#
+# max_len = 5000
+# d_model = 512
+#
+# pe = sfix.Tensor([1, max_len, d_model])
+# a = sfix(0.0)
+# pe.assign_all(a)
+# # position shape [5000,1]
+# position = sfix.Matrix(max_len, 1)
+# for i in range(max_len):
+#     position[i][0] = sfix(i)
+#
+# # 创建一个行数为d_model/2，列数为1的矩阵，条目类型为定点数
+# div_term_matrix = sfix.Matrix(1, d_model // 2)
+# # 循环以计算每个所需指数的值并填充矩阵
+# from Compiler import mpc_math as math
+#
+# for i in range(0, d_model, 2):
+#     # 计算指数函数的参数
+#     # 由于exp2_fx计算2^x，我们需要将基数转换为2的对数
+#     # np.log(10000.0) / d_model 相当于 log2(10000.0) / d_model * log2(e)
+#     exponent = -(math.log2_fx(sfix(10000.0)) * i) / (d_model * math.log2_fx(sfix(2)))
+#     result = math.exp2_fx(exponent)
+#     div_term_matrix[0][i // 2] = result
+#
+#
+# # div_term_matrix shape [256]. [1280000]
+# # Expected Value is [5000, 256]
+# print_ln('div_term_matrix[0][0] =%s',div_term_matrix[0][0].reveal())
+# pos_div = position.dot(div_term_matrix)
+#
+# for i in range(10):
+#     for j in range(10 // 2):
+#         # 偶数列使用 sin 函数
+#         pe[0][i][2 * j] = math.sin(pos_div[i][j])
+#         # 奇数列使用 cos 函数
+#         pe[0][i][2 * j + 1] = math.cos(pos_div[i][j])
+#
+# time_now = time.time()
+# forward_pe = ml._get_sliced_data(pe, 96)
+# print_ln('parallel sliced_batch_y speed time: %s', (time.time() - time_now) / 60)
+#
+# time_now = time.time()
+# forward_pe = get_sliced_data(pe, 96)
+# print_ln('parallel sliced_batch_y speed time: %s', (time.time() - time_now) / 60)
+#
+# print_ln('pe shape is %s', forward_pe.shape)
+#
+# print_ln('pe[0][0][1] =%s',pe[0][0][1].reveal())
+# print_ln('pe[0][0][2] =%s',pe[0][0][2].reveal())
+# print_ln('pe[0][0][2] =%s',pe[0][1][1].reveal())
+# print_ln('pe[0][0][2] =%s',pe[0][1][2].reveal())
+# print_ln('pe[0][0][2] =%s',pe[0][1][4].reveal())
+# print_ln('pe[0][0][2] =%s',pe[0][1][5].reveal())
+
+
+# peArray = sfix.input_tensor_via(0, pe)
+# print_ln('peArray[0][0][0] =%s',peArray[0][0][0].reveal())
+# print_ln('peArray[0][96][0] =%s',peArray[0][95][0].reveal())
+# print_ln('peArray[0][100][0] =%s',peArray[0][95][1].reveal())
+# peArray = peArray.get_vector_part(1, 96)
+# result = peArray[:, :96]
+# print_ln('After peArray[0][0][0] =%s',peArray[0][0][0].reveal())
+# print_ln('After peArray[0][96][0] =%s',peArray[0][95][0].reveal())
+# print_ln('After peArray[0][100][0] =%s',peArray[0][95][1].reveal())
+
+# print_ln('Sum Results =%s',T.reveal())
+#
+# print_ln(fd.reveal())
+# print_ln(sd.reveal())
+# cd = sd.concat(fd)
+# print_ln(cd.reveal())
+# a = sfix.get_input_from(0)
+# b = sfix.get_input_from(1)
+# c = sfix.get_input_from(2)
+# d = sfix.get_input_from(3)
+# e = sfix.get_input_from(4)
+# sum = a + b
+# prod = a * b
+# avg = sum/3
+# print_ln('Sum Results =%s',sum.reveal())
+# print_ln('Production Results =%s',prod.reveal())
+# print_ln('Avg Results =%s',avg.reveal())
+
+# def erf_taylor3(x):
+#     a1 = sfix(0.3480242)
+#     a2 = sfix(-0.0958798)
+#     a3 = sfix(0.7478556)
+#     p = sfix(0.47047)
+#     e = sfix(2.718281828459045)
+#     from Compiler import mpc_math
+#
+#     sign = x < 0
+#     x_abs = abs(x)
+#
+#     t = 1 / (1 + p * x_abs)
+#     y = 1 - (((a3 * t + a2) * t + a1) * t * mpc_math.pow_fx(e, -(x_abs * x_abs)))
+#
+#     sign = sign.reveal()
+#     return sign.if_else(-y, y)
+#
+# def erf_taylor2(x):
+#     a1 = sfix(0.3275911)
+#     a2 = sfix(-0.5)
+#     p = sfix(0.3275911)
+#     e = sfix(2.718281828459045)
+#     from Compiler import mpc_math
+#     sign = x < 0
+#     x_abs = abs(x)
+#     t = 1 / (1 + p * x_abs)
+#     y = 1 - ((a2 * t + a1) * t * mpc_math.pow_fx(e, -(x_abs * x_abs)))
+#     sign = sign.reveal()
+#     return sign.if_else(-y, y)
+#
+# def erf_taylor7(x):
+#     a1 = sfix(0.254829592)
+#     a2 = sfix(-0.284496736)
+#     a3 = sfix(1.421413741)
+#     a4 = sfix(-1.453152027)
+#     a5 = sfix(1.061405429)
+#     a6 = sfix(-0.5)
+#     a7 = sfix(0.3275911)
+#     p = sfix(0.3275911)
+#     e = sfix(2.718281828459045)
+#     from Compiler import mpc_math
+#     sign = x < 0
+#     x_abs = abs(x)
+#     t = 1 / (1 + p * x_abs)
+#     y = 1 - ((((((a7 * t + a6) * t + a5) * t + a4) * t + a3) * t + a2) * t + a1) * t * mpc_math.pow_fx(e, -(x_abs * x_abs))
+#     sign = sign.reveal()
+#     return sign.if_else(-y, y)
+#
+# a = erf_taylor2(sfix(2.28))
+# print_ln("erf_taylor2: %s", a.reveal())
+#
+# b = erf_taylor3(sfix(2.28))
+# print_ln("erf_taylor3: %s", b.reveal())
+#
+# c = erf_taylor7(sfix(2.28))
+# print_ln("erf_taylor7: %s", c.reveal())
